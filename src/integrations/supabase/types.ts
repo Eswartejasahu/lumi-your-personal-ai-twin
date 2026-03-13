@@ -14,7 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      documents: {
+        Row: {
+          content: string | null
+          created_at: string
+          file_type: string | null
+          id: string
+          name: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          file_type?: string | null
+          id?: string
+          name: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          file_type?: string | null
+          id?: string
+          name?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
