@@ -32,30 +32,29 @@ const Profiles = () => {
   }, [user]);
 
   const loadProfiles = async () => {
-    const { data } = await supabase.from('profiles' as any).select('*').eq('user_id', user!.id).order('created_at');
-    setProfiles((data as any) || []);
+    const { data } = await supabase.from('profiles').select('*').eq('user_id', user!.id).order('created_at');
+    setProfiles(data || []);
   };
 
   const createProfile = async () => {
     if (!newName.trim()) return;
-    // Free plan limit: 1 profile
     if (profiles.length >= 4) { toast.error('Maximum profiles reached'); return; }
     setCreating(true);
-    const { error } = await supabase.from('profiles' as any).insert({ name: newName.trim(), user_id: user!.id } as any);
+    const { error } = await supabase.from('profiles').insert({ name: newName.trim(), user_id: user!.id });
     if (error) toast.error(error.message);
     else { setNewName(''); await loadProfiles(); }
     setCreating(false);
   };
 
   const deleteProfile = async (id: string) => {
-    const { error } = await supabase.from('profiles' as any).delete().eq('id', id);
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) toast.error(error.message);
     else await loadProfiles();
   };
 
   const renameProfile = async (id: string) => {
     if (!editName.trim()) return;
-    const { error } = await supabase.from('profiles' as any).update({ name: editName.trim() } as any).eq('id', id);
+    const { error } = await supabase.from('profiles').update({ name: editName.trim() }).eq('id', id);
     if (error) toast.error(error.message);
     else { setEditingId(null); await loadProfiles(); }
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -10,12 +10,11 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import ReactMarkdown from 'react-markdown';
 import {
   MessageSquare, Upload, Brain, Network, Settings, LogOut, Send, Mic, MicOff,
-  FileText, Image, Link2, Camera, X, Menu, User,
+  FileText, Camera, X, Menu, User, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message { role: 'user' | 'assistant'; content: string; }
-interface Doc { id: string; name: string; created_at: string; }
 
 type Tab = 'chat' | 'upload' | 'insights' | 'graph' | 'settings';
 
@@ -38,7 +37,7 @@ const Dashboard = () => {
   const recognitionRef = useRef<any>(null);
 
   // Upload
-  const [documents, setDocuments] = useState<Doc[]>([]);
+  const [documents, setDocuments] = useState<{ id: string; name: string; created_at: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,8 +51,8 @@ const Dashboard = () => {
   useEffect(() => { if (profileId) loadDocuments(); }, [profileId]);
 
   const loadDocuments = async () => {
-    const { data } = await supabase.from('documents' as any).select('*').eq('profile_id', profileId).order('created_at', { ascending: false });
-    setDocuments((data as any) || []);
+    const { data } = await supabase.from('documents').select('*').eq('profile_id', profileId!).order('created_at', { ascending: false });
+    setDocuments(data || []);
   };
 
   // AI Chat
@@ -65,9 +64,8 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      // Get document content for context
-      const { data: docs } = await supabase.from('documents' as any).select('content, name').eq('profile_id', profileId);
-      const context = (docs as any[])?.map(d => `[${d.name}]: ${d.content}`).join('\n\n') || '';
+      const { data: docs } = await supabase.from('documents').select('content, name').eq('profile_id', profileId!);
+      const context = docs?.map(d => `[${d.name}]: ${d.content}`).join('\n\n') || '';
 
       const allMessages = [...messages, userMsg];
       const systemPrompt = context
@@ -80,10 +78,8 @@ const Dashboard = () => {
 
       if (resp.error) throw new Error(resp.error.message);
 
-      // Handle streaming or plain response
       const data = resp.data;
       if (typeof data === 'string') {
-        // SSE stream
         const lines = data.split('\n');
         let assistantContent = '';
         for (const line of lines) {
@@ -143,13 +139,13 @@ const Dashboard = () => {
     for (const file of Array.from(files)) {
       try {
         const text = await file.text();
-        const { error } = await supabase.from('documents' as any).insert({
+        const { error } = await supabase.from('documents').insert({
           profile_id: profileId,
           user_id: user!.id,
           name: file.name,
           content: text,
           file_type: file.type || 'text/plain',
-        } as any);
+        });
         if (error) throw error;
         toast.success(`Uploaded: ${file.name}`);
       } catch (err: any) {
@@ -161,7 +157,7 @@ const Dashboard = () => {
   };
 
   const deleteDoc = async (id: string) => {
-    await supabase.from('documents' as any).delete().eq('id', id);
+    await supabase.from('documents').delete().eq('id', id);
     await loadDocuments();
   };
 
@@ -212,20 +208,20 @@ const Dashboard = () => {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
         <header className="h-14 flex items-center gap-3 px-4 border-b border-border/30 shrink-0">
           {!sidebarOpen && (
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="text-muted-foreground h-8 w-8">
               <Menu className="h-5 w-5" />
             </Button>
           )}
-          <h2 className="font-display font-semibold text-foreground capitalize">{tab === 'chat' ? t('chat') : tab === 'upload' ? t('upload') : tab === 'insights' ? t('insights') : tab === 'graph' ? t('knowledge_graph') : t('settings')}</h2>
+          <h2 className="font-display font-semibold text-foreground capitalize">
+            {tab === 'chat' ? t('chat') : tab === 'upload' ? t('upload') : tab === 'insights' ? t('insights') : tab === 'graph' ? t('knowledge_graph') : t('settings')}
+          </h2>
           <Button variant="ghost" size="sm" onClick={() => navigate('/profiles')} className="ml-auto text-muted-foreground text-xs">
             {t('profiles')}
           </Button>
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-hidden">
           {tab === 'chat' && (
             <div className="h-full flex flex-col">
@@ -360,8 +356,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-// Need Trash2 import fix
-import { Trash2 } from 'lucide-react';
 
 export default Dashboard;
